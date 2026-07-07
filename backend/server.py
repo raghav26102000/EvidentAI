@@ -12,6 +12,7 @@ from app.routers import auth as auth_router
 from app.routers import datasets as datasets_router
 from app.routers import health as health_router
 from app.routers import sessions as sessions_router
+from app.routers import agents as agents_router
 from app.storage import init_storage_or_log
 
 logging.basicConfig(
@@ -38,6 +39,8 @@ api.include_router(datasets_router.router)
 api.include_router(sessions_router.router)
 api.include_router(sessions_router.api_keys_router)
 api.include_router(sessions_router.audit_router)
+api.include_router(agents_router.analyze_router)
+api.include_router(agents_router.jobs_router)
 
 
 @api.get("/")
