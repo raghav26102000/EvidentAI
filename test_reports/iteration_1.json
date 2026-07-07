@@ -1,0 +1,51 @@
+{
+  "summary": "Backend testing BLOCKED: PostgreSQL server is not installed/running in the current preview container, so every /api/* call returns 502 Bad Gateway (Cloudflare) because the FastAPI app fails to start (asyncpg ConnectionRefusedError on 127.0.0.1:5432). Frontend loads and all required data-testids are present, but no end-to-end backend flow could be exercised.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "ALL /api/*",
+        "issue": "Backend cannot start. asyncpg raises ConnectionRefusedError on 127.0.0.1:5432 at app startup (see /var/log/supervisor/backend.err.log). Root cause: PostgreSQL 15 server has been removed from the container (no /usr/lib/postgresql binaries, dpkg -l postgresql-15 = not installed). Cloudflare ingress returns 502 for every /api request. This blocks every Phase-1 backend test (health, auth, refresh rotation & reuse detection, RLS, uploads, profiling, sessions, api-keys, audit).",
+        "priority": "CRITICAL"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Any auth/API-backed flow",
+        "issue": "Frontend cannot login/register because backend is 502. AuthProvider bootstrapSession() will also fail. Cannot verify redirects to /datasets.",
+        "affected_selectors": ["[data-testid='login-submit-button']", "[data-testid='register-submit-button']"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/backend/tests/conftest.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "URGENT: Restore PostgreSQL 15 in the preview container. Install postgresql-15 (apt-get), initialize cluster, create roles `evident` (NOBYPASSRLS) and `evident_auth` (BYPASSRLS) with the passwords from backend/.env, create database `evidentai`, and ensure the server listens on 127.0.0.1:5432. Backend init_db() will then create tables & RLS policies on startup.",
+    "Consider adding a supervisord unit for postgresql so it survives container restarts (currently there is no supervisor conf for postgres; it was started manually per the log from 07:10 UTC and is no longer running).",
+    "After PG is back, re-run: pytest /app/backend/tests/backend_test.py -v --junitxml=/app/test_reports/pytest/pytest_results.xml (26 tests cover every review-request item including refresh reuse detection and cross-tenant RLS).",
+    "Optional test-code note: TestHealth.test_health tolerates response shape; update once contract is settled."
+  ],
+  "critical_code_review_comments": [
+    "Environment lacks any watchdog/supervisor entry for PostgreSQL — a single container restart takes the entire backend offline until someone manually starts pg. Add /etc/supervisor/conf.d/postgresql.conf or bake pg into the container image.",
+    "backend/.env uses hardcoded pg credentials over TCP loopback with SSL required (asyncpg default). Verify pg_hba.conf allows SCRAM over 127.0.0.1 once reinstalled.",
+    "No code changes were reviewed further because runtime is unavailable; deferred until backend boots."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py (new pytest suite, 26 tests)",
+    "/app/backend/tests/conftest.py (new)"
+  ],
+  "success_rate": {"backend": "0% (blocked, 7 failed / 20 errored due to 502)", "frontend": "smoke-only: login+register pages render with all required data-testids"},
+  "test_credentials": "admin@acme.example.com / S3cure-Pass-42! (per /app/memory/test_credentials.md; not usable until PG is restored)",
+  "seed_data_creation": "None — every register attempt returned 502.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "The pytest suite at /app/backend/tests/backend_test.py is complete and ready to run. It covers: health (3), auth register/login/me/dup/RS256 (8), refresh rotation + family reuse detection + logout revoke (2 critical tests), upload hardening (6: txt/png/empty/xlsm/xlsx-vba/csv-formula), happy-path CSV upload + profile shape (3), RLS cross-tenant isolation (2), sessions/api-keys/audit (3). The ONLY blocker is missing PostgreSQL — once main agent brings pg back up (verify with `curl https://evident-preview.preview.emergentagent.com/api/health/db` -> ok=true), just rerun pytest. Do not rewrite tests unless a contract issue surfaces.",
+  "rca of the issue": "Backend supervisor process is running but its FastAPI app repeatedly exits during startup (see /var/log/supervisor/backend.err.log tail): sqlalchemy → asyncpg → OSError [Errno 111] Connect call failed ('127.0.0.1', 5432). PostgreSQL is not present in the container: `which postgres`, `find / -name postgres -executable -type f`, and `dpkg -l postgresql-15` all confirm absence. Previous /var/log/postgresql/postgresql-15-main.log shows PG was up around 07:10-07:20 UTC and served evident/evident_auth queries, so this appears to be a container-state regression (PG package/data dir wiped). Mitigation: apt-get install postgresql-15, restore/init cluster, create roles + db from backend/.env creds, restart supervisor backend, then rerun pytest."
+}
