@@ -130,11 +130,22 @@ async def register(payload: RegisterRequest, request: Request, response: Respons
         ))
         access, claims = issue_access_token(str(user.id), str(tenant.id), user.role)
         _set_refresh_cookie(response, raw, _settings.jwt_refresh_ttl)
-        return LoginResponse(
-            access_token=access,
-            expires_in=_settings.jwt_access_ttl,
-            user=UserOut.model_validate(user),
+    # Seed the demo dataset for this new tenant so a first-time viewer
+    # immediately sees the reject/retry story on the datasets list.
+    # Done AFTER the transaction commits (auth_session context exited).
+    try:
+        from ..demo_seed import _seed_for_tenant  # noqa: WPS433 (local import to avoid cycles)
+        async with auth_session() as _s:
+            await _seed_for_tenant(_s, tenant.id)
+    except Exception:
+        logging.getLogger(__name__).exception(
+            "demo seed on register failed (non-fatal) for tenant %s", tenant.id,
         )
+    return LoginResponse(
+        access_token=access,
+        expires_in=_settings.jwt_access_ttl,
+        user=UserOut.model_validate(user),
+    )
 
 
 @router.post("/login", response_model=LoginResponse)

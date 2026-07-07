@@ -7,6 +7,7 @@ from fastapi import APIRouter, FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
+from app.demo_seed import seed_demo_for_all_tenants
 from app.init_db import init_db
 from app.routers import auth as auth_router
 from app.routers import datasets as datasets_router
@@ -26,6 +27,10 @@ logger = logging.getLogger(__name__)
 async def lifespan(_: FastAPI):
     await init_db()
     init_storage_or_log()
+    try:
+        await seed_demo_for_all_tenants()
+    except Exception:  # noqa: BLE001
+        logger.exception("demo seed failed (non-fatal)")
     logger.info("EvidentAI backend ready.")
     yield
 

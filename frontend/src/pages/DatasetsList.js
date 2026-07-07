@@ -2,7 +2,12 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../lib/api";
 import StatusBadge from "../components/StatusBadge";
-import { Upload, RefreshCcw, FileText, ChevronRight } from "lucide-react";
+import { Upload, RefreshCcw, FileText, ChevronRight, Sparkles } from "lucide-react";
+
+const DEMO_FILENAME = "example-correlation-review.csv";
+function isDemo(row) {
+    return row?.original_filename === DEMO_FILENAME;
+}
 
 function fmtBytes(n) {
     if (!n && n !== 0) return "—";
@@ -49,6 +54,36 @@ export default function DatasetsList() {
 
     return (
         <div className="space-y-6" data-testid="datasets-page">
+            {/* First-time-viewer callout: only render if a demo row exists */}
+            {rows.some(isDemo) && (() => {
+                const demo = rows.find(isDemo);
+                return (
+                    <Link
+                        to={`/datasets/${demo.id}/analysis`}
+                        data-testid="demo-callout"
+                        className="block border border-[hsl(var(--primary))]/50 bg-gradient-to-r from-[hsl(var(--primary))]/10 to-transparent rounded-sm p-5 hover:border-[hsl(var(--primary))] transition-colors group"
+                    >
+                        <div className="flex items-start gap-4">
+                            <Sparkles size={20} className="text-[hsl(var(--primary))] mt-0.5 flex-shrink-0" />
+                            <div className="flex-1">
+                                <div className="label-caps text-[hsl(var(--primary))] mb-1">New here? Start with the example</div>
+                                <div className="font-heading font-bold text-white text-lg leading-snug">
+                                    Example analysis · correlation review with agent critique
+                                </div>
+                                <div className="text-sm text-[hsl(var(--muted-foreground))] mt-1.5 max-w-3xl">
+                                    A finished statistical + insight run showing the multi-agent pipeline
+                                    catching an overstated correlation, sending it back for revision, and
+                                    approving the corrected write-up on retry.
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-1 text-xs text-[hsl(var(--primary))] font-mono opacity-70 group-hover:opacity-100 self-center">
+                                Open <ChevronRight size={14} />
+                            </div>
+                        </div>
+                    </Link>
+                );
+            })()}
+
             <div className="flex items-end justify-between gap-4 flex-wrap">
                 <div>
                     <div className="label-caps mb-1">Datasets</div>
@@ -128,20 +163,31 @@ export default function DatasetsList() {
                                 </td>
                             </tr>
                         ) : (
-                            rows.map((r) => (
+                            rows.map((r) => {
+                                const demo = isDemo(r);
+                                const detailHref = demo ? `/datasets/${r.id}/analysis` : `/datasets/${r.id}`;
+                                return (
                                 <tr
                                     key={r.id}
-                                    className="border-t border-[hsl(var(--border))] hover:bg-[hsl(var(--secondary))] transition-colors"
+                                    className={`border-t border-[hsl(var(--border))] hover:bg-[hsl(var(--secondary))] transition-colors ${demo ? "bg-[hsl(var(--primary))]/5" : ""}`}
                                     data-testid={`dataset-row-${r.id}`}
                                 >
                                     <td className="px-4 py-2.5">
                                         <Link
-                                            to={`/datasets/${r.id}`}
+                                            to={detailHref}
                                             data-testid={`dataset-link-${r.id}`}
                                             className="flex items-center gap-2 text-white hover:text-[hsl(var(--primary))]"
                                         >
                                             <FileText size={14} strokeWidth={1.5} className="text-[hsl(var(--muted-foreground))]" />
                                             <span className="font-mono text-sm">{r.original_filename}</span>
+                                            {demo && (
+                                                <span
+                                                    data-testid="demo-pill"
+                                                    className="ml-1 text-[10px] font-mono px-1.5 py-0.5 rounded-sm border border-[hsl(var(--primary))]/50 text-[hsl(var(--primary))] bg-[hsl(var(--primary))]/10"
+                                                >
+                                                    EXAMPLE
+                                                </span>
+                                            )}
                                         </Link>
                                     </td>
                                     <td className="px-4 py-2.5">
@@ -158,14 +204,15 @@ export default function DatasetsList() {
                                     </td>
                                     <td className="px-4 py-2.5 text-right">
                                         <Link
-                                            to={`/datasets/${r.id}`}
+                                            to={detailHref}
                                             className="inline-flex text-[hsl(var(--muted-foreground))] hover:text-white"
                                         >
                                             <ChevronRight size={16} />
                                         </Link>
                                     </td>
                                 </tr>
-                            ))
+                                );
+                            })
                         )}
                     </tbody>
                 </table>
