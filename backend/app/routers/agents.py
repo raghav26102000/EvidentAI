@@ -35,7 +35,7 @@ from ..agents.insight_pipeline import run_insight_pipeline
 from ..db import app_session
 from ..deps import CurrentUser, get_current_user, tenant_session
 from ..kms import EncryptedBlob, decrypt_with_dek
-from ..models import AgentJob, AuditEvent, Dataset, DatasetProfile
+from ..models import AgentJob, AgentLog, AuditEvent, CriticDecision, Dataset, DatasetProfile
 from ..sandbox import SandboxLimits
 from ..storage import StorageError, get_object
 
@@ -275,6 +275,121 @@ async def get_agent_job(
         payload=job.payload or {},
         created_at=job.created_at,
     )
+
+
+# ---------------------------------------------------------------------------
+# READ-ONLY listing endpoints for Phase 4 dashboard/trail views
+# ---------------------------------------------------------------------------
+class AgentJobSummary(BaseModel):
+    id: uuid.UUID
+    dataset_id: uuid.UUID | None
+    agent_type: str
+    status: str
+    started_at: datetime | None
+    finished_at: datetime | None
+    created_at: datetime
+    cost_tokens: int = 0
+
+
+class AgentLogRow(BaseModel):
+    id: uuid.UUID
+    agent_role: str
+    step: str
+    payload: dict
+    created_at: datetime
+
+
+class CriticDecisionRow(BaseModel):
+    id: uuid.UUID
+    verdict: str
+    reasoning: str | None
+    blocked: bool
+    created_at: datetime
+
+
+@analyze_router.get(
+    "/{dataset_id}/agent-jobs",
+    response_model=list[AgentJobSummary],
+)
+async def list_agent_jobs_for_dataset(
+    dataset_id: uuid.UUID,
+    session: AsyncSession = Depends(tenant_session),
+    _current: CurrentUser = Depends(get_current_user),
+) -> list[AgentJobSummary]:
+    rows = (
+        await session.execute(
+            select(AgentJob)
+            .where(AgentJob.dataset_id == dataset_id)
+            .order_by(AgentJob.created_at.desc())
+        )
+    ).scalars().all()
+    return [
+        AgentJobSummary(
+            id=j.id,
+            dataset_id=j.dataset_id,
+            agent_type=j.agent_type,
+            status=j.status,
+            started_at=j.started_at,
+            finished_at=j.finished_at,
+            created_at=j.created_at,
+            cost_tokens=int(j.cost_tokens or 0),
+        )
+        for j in rows
+    ]
+
+
+@jobs_router.get("/{job_id}/logs", response_model=list[AgentLogRow])
+async def list_agent_logs(
+    job_id: uuid.UUID,
+    session: AsyncSession = Depends(tenant_session),
+    _current: CurrentUser = Depends(get_current_user),
+) -> list[AgentLogRow]:
+    exists = (
+        await session.execute(select(AgentJob).where(AgentJob.id == job_id))
+    ).scalar_one_or_none()
+    if exists is None:
+        raise HTTPException(status_code=404, detail="Agent job not found")
+    rows = (
+        await session.execute(
+            select(AgentLog)
+            .where(AgentLog.job_id == job_id)
+            .order_by(AgentLog.created_at.asc())
+        )
+    ).scalars().all()
+    return [
+        AgentLogRow(
+            id=r.id, agent_role=r.agent_role, step=r.step,
+            payload=r.payload or {}, created_at=r.created_at,
+        )
+        for r in rows
+    ]
+
+
+@jobs_router.get("/{job_id}/critic-decisions", response_model=list[CriticDecisionRow])
+async def list_critic_decisions(
+    job_id: uuid.UUID,
+    session: AsyncSession = Depends(tenant_session),
+    _current: CurrentUser = Depends(get_current_user),
+) -> list[CriticDecisionRow]:
+    exists = (
+        await session.execute(select(AgentJob).where(AgentJob.id == job_id))
+    ).scalar_one_or_none()
+    if exists is None:
+        raise HTTPException(status_code=404, detail="Agent job not found")
+    rows = (
+        await session.execute(
+            select(CriticDecision)
+            .where(CriticDecision.job_id == job_id)
+            .order_by(CriticDecision.created_at.asc())
+        )
+    ).scalars().all()
+    return [
+        CriticDecisionRow(
+            id=r.id, verdict=r.verdict, reasoning=r.reasoning,
+            blocked=bool(r.blocked), created_at=r.created_at,
+        )
+        for r in rows
+    ]
 
 
 # ---------------------------------------------------------------------------

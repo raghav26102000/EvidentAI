@@ -6,6 +6,8 @@ import { LoginPage, RegisterPage } from "./pages/Auth";
 import DatasetsList from "./pages/DatasetsList";
 import DatasetUpload from "./pages/DatasetUpload";
 import DatasetDetail from "./pages/DatasetDetail";
+import AnalysisDashboard from "./pages/AnalysisDashboard";
+import AgentTrail from "./pages/AgentTrail";
 import AuditLog from "./pages/AuditLog";
 import Settings from "./pages/Settings";
 import "./App.css";
@@ -66,6 +68,8 @@ function App() {
                         <Route index element={<Navigate to="/datasets" replace />} />
                         <Route path="datasets" element={<DatasetsList />} />
                         <Route path="datasets/:id" element={<DatasetDetail />} />
+                        <Route path="datasets/:id/analysis" element={<AnalysisDashboard />} />
+                        <Route path="agent-trail/:jobId" element={<AgentTrail />} />
                         <Route path="upload" element={<DatasetUpload />} />
                         <Route path="audit" element={<AuditLog />} />
                         <Route path="settings" element={<Settings />} />

@@ -66,7 +66,7 @@ class ColumnProfileOut(BaseModel):
     name: str
     type: str
     null_count: int
-    non_null_count: int
+    non_null_count: int | None = None
     cardinality: int | None = None
     stats: dict[str, Any] = {}
     top_values: list[dict[str, Any]] = []

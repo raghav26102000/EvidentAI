@@ -115,6 +115,15 @@ export default function DatasetDetail() {
                     </div>
                     <StatusBadge status={ds.status} testId="dataset-status-badge" />
                 </div>
+                <div className="mt-3">
+                    <Link
+                        to={`/datasets/${ds.id}/analysis`}
+                        data-testid="link-open-analysis"
+                        className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-[hsl(var(--primary))] text-white hover:bg-[hsl(var(--primary))]/90 rounded-sm"
+                    >
+                        Open analysis dashboard →
+                    </Link>
+                </div>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
