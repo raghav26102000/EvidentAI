@@ -1,0 +1,126 @@
+{
+  "theme_and_archetype": {
+    "domain": "Enterprise SaaS, Data Analytics, Security",
+    "theme": "Dark",
+    "archetype": "Archetype 4 (Swiss & High-Contrast) - Modified for Data Console",
+    "rationale": "To convey trust, security, and technical precision, we are using a dark-mode, high-contrast Swiss grid approach. Deep gray/black backgrounds paired with highly saturated status accents ensure clear data legibility without visual fatigue. No purple/teal slop."
+  },
+  "colors": {
+    "background": "#09090B",
+    "surface": "#121214",
+    "surface_hover": "#18181B",
+    "border": "#27272A",
+    "text_primary": "#FAFAFA",
+    "text_secondary": "#A1A1AA",
+    "primary_accent": "#0055FF",
+    "primary_accent_hover": "#0044CC",
+    "status": {
+      "success": "#10B981",
+      "warning": "#F59E0B",
+      "critical": "#EF4444",
+      "info": "#3B82F6"
+    }
+  },
+  "typography": {
+    "fonts_to_import": [
+      "https://fonts.googleapis.com/css2?family=Chivo:wght@400;700&family=IBM+Plex+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap"
+    ],
+    "headings": {
+      "family": "'Chivo', sans-serif",
+      "style": "font-bold tracking-tight"
+    },
+    "body": {
+      "family": "'IBM Plex Sans', sans-serif",
+      "style": "leading-relaxed"
+    },
+    "data_and_code": {
+      "family": "'JetBrains Mono', monospace",
+      "style": "tracking-tight text-sm",
+      "usage": "Use for all numerical values, stats, API keys, logs, and status badges."
+    },
+    "hierarchy": {
+      "h1": "text-3xl sm:text-4xl lg:text-5xl",
+      "h2": "text-2xl sm:text-3xl",
+      "h3": "text-xl",
+      "body": "text-sm",
+      "labels": "text-xs uppercase tracking-[0.1em]"
+    }
+  },
+  "spacing_and_layout": {
+    "strategy": "The Control Room Grid (Density & Clarity)",
+    "container_padding": "p-6 sm:p-8",
+    "grid_gaps": "gap-4 sm:gap-6",
+    "panels": "border border-border bg-surface rounded-sm",
+    "tables": "Top-aligned, tabular nums, monospace fonts for data columns. Left-sticky for primary identifier (e.g., dataset name).",
+    "alignment": "Right-align numerical columns to stack decimal points perfectly. Do not use generic centered layouts."
+  },
+  "components": {
+    "strategy": "Shadcn UI tailored for data density and technical console feel.",
+    "buttons": "rounded-sm font-medium, use primary_accent for main CTA, surface colors with border for secondary. ALWAYS apply explicit text color on hover (e.g., hover:bg-zinc-800 hover:text-white).",
+    "cards": "Minimalism. 1px solid border (#27272A). Flat bg (#121214). NO drop shadows. rounded-sm.",
+    "badges": "Flat background with 10% opacity of the status color, 1px solid border of 20% opacity of status color, text in 100% status color. Font: JetBrains Mono text-xs.",
+    "inputs": "Flat, rounded-sm, bg-surface, border-border, focus:ring-1 focus:ring-primary_accent focus:border-primary_accent. No glowing shadows.",
+    "icons": "Phosphor Icons (@phosphor-icons/react) - weight='regular'.",
+    "charts": "Shadcn Charts (Recharts). Grid lines should be very subtle (#27272A). Tooltips must have dark solid backgrounds (#09090B) and 1px border. Sparklines used in tables."
+  },
+  "screens": {
+    "auth": {
+      "layout": "Split screen. Left: Abstract network visual with dark overlay (bg-black/50). Right: Minimalist login/register form.",
+      "features": "Form to create tenant and first admin user. Use Shadcn forms."
+    },
+    "dashboard_shell": {
+      "layout": "Top navigation bar (border-b border-border bg-background). Left side: Logo and Tenant Name (JetBrains Mono). Right side: User avatar and Settings dropdown.",
+      "content": "Empty state should use an ASCII art or monospace placeholder icon to maintain the technical vibe."
+    },
+    "datasets_list": {
+      "layout": "Full width data table with pagination.",
+      "features": "Status badges for 'uploading', 'scanning', 'profiling', 'ready', 'failed'. Use right-aligned actions column."
+    },
+    "dataset_upload": {
+      "layout": "Center-focused bento grid (NOT standard centered, but structured grid with distinct dropzone and realtime feedback panel).",
+      "features": "Large drag-drop zone (border-dashed border-2 border-border/50 hover:border-primary_accent). Real-time progress bars with JetBrains Mono percentages."
+    },
+    "dataset_detail": {
+      "layout": "Top section: High-level dataset metadata. Main section: Dense data table for deterministic profile output.",
+      "features": "Columns: Name, Type, Null Count, Cardinality, Summary Stats. Include Shadcn sparkline/mini-bar chart in the Summary Stats column. Use monospace for all numbers."
+    },
+    "admin_audit": {
+      "layout": "Terminal/Log-style list view.",
+      "features": "Monospace timestamp column. Event type badges. Plain text log descriptions. High density."
+    },
+    "settings": {
+      "layout": "Left sidebar for settings navigation (Profile, API Keys, Sessions), right pane for content.",
+      "features": "API Keys hidden (bullet mask) with 'Reveal' button. Sessions list with 'Revoke' button (use red/critical accent for destructive actions)."
+    }
+  },
+  "accessibility_and_testing": {
+    "contrast": "Ensure APCA/WCAG AA compliance. Use text-white on primary accents.",
+    "data_testid": "ALL interactive elements MUST include data-testid. Format: kebab-case, role-based. e.g., data-testid='login-submit-button', data-testid='upload-dropzone', data-testid='revoke-session-button'."
+  },
+  "image_urls": {
+    "auth_background": {
+      "url": "https://images.unsplash.com/photo-1644325349124-d1756b79dd42?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MDV8MHwxfHNlYXJjaHwyfHxhYnN0cmFjdCUyMGRhdGElMjBuZXR3b3JrJTIwcGF0dGVybnxlbnwwfHx8fDE3ODM0MDgwODl8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Abstract data network pattern for auth screen left panel",
+      "category": "background"
+    },
+    "user_avatar": {
+      "url": "https://images.pexels.com/photos/6146051/pexels-photo-6146051.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+      "description": "Professional user avatar for top right dashboard shell",
+      "category": "avatar"
+    },
+    "logo_symbol": {
+      "url": "https://images.unsplash.com/photo-1705904506562-f28266845273?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2ODl8MHwxfHNlYXJjaHwxfHxjb3Jwb3JhdGUlMjBlbnRlcnByaXNlJTIwbG9nbyUyMHN5bWJvbHxlbnwwfHx8fDE3ODM0MDgwODl8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Minimalist corporate logo symbol for top left branding",
+      "category": "logo"
+    }
+  },
+  "instructions_to_main_agent": [
+    "Execute yarn add @phosphor-icons/react recharts",
+    "Import Chivo, IBM Plex Sans, and JetBrains Mono fonts into index.css or via Google Fonts link.",
+    "Implement Shadcn UI using the CLI, prioritizing Table, Form, Input, Button, Card, Badge, Tabs, DropdownMenu.",
+    "Strictly follow 1px border and flat background styles for Cards to achieve the 'Console' look. Avoid shadows.",
+    "Ensure ALL buttons, links, and forms have data-testid attributes.",
+    "Use JS (not TSX), ensuring components are written in Javascript.",
+    "Avoid generic centered layouts by utilizing full-width or strictly gridded asymmetric sections."
+  ]
+}
