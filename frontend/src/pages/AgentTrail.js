@@ -81,6 +81,7 @@ export default function AgentTrail() {
                         attempt={att}
                         idx={idx}
                         prevAttempt={attempts[idx - 1]}
+                        nextAttempt={attempts[idx + 1]}
                         isFinal={idx === attempts.length - 1}
                     />
                 ))}
@@ -164,7 +165,7 @@ function SummaryCell({ icon: Icon, label, value, tone }) {
     );
 }
 
-function AttemptCard({ attempt, idx, prevAttempt, isFinal }) {
+function AttemptCard({ attempt, idx, prevAttempt, nextAttempt, isFinal }) {
     const verdict = attempt.critic?.payload?.verdict; // "approve" | "reject"
     const criticIssues = attempt.critic?.payload?.issues || [];
     const findings = attempt.findings?.findings || [];
@@ -287,7 +288,7 @@ function AttemptCard({ attempt, idx, prevAttempt, isFinal }) {
 
             {/* Before/after diff — only rendered when this rejected attempt has a successor */}
             {isRejected && (
-                <BeforeAfterStrip attempt={attempt} />
+                <BeforeAfterStrip attempt={attempt} nextAttempt={nextAttempt} />
             )}
         </section>
     );
@@ -303,13 +304,12 @@ function ModelBadge({ log, role }) {
     );
 }
 
-function BeforeAfterStrip({ attempt }) {
-    const issues = attempt.critic?.payload?.issues || [];
+function BeforeAfterStrip({ attempt, nextAttempt }) {
     const reasoning = attempt.critic?.payload?.reasoning || "";
-    // Try to extract a specific numeric contradiction the critic caught.
-    // The critic's reasoning typically cites e.g. "r_xz_claimed=0.97" vs
-    // "actual stat result shows r_xz = -0.02513". We highlight these
-    // pairs in a monospace before/after block.
+    // The "before": the SUSPECT (first) finding of the rejected attempt.
+    const rejected = (attempt.findings?.findings || [])[0];
+    // The "after": the top finding produced on the successor attempt.
+    const corrected = (nextAttempt?.findings?.findings || [])[0];
     return (
         <div className="border-t border-[hsl(var(--border))] bg-[hsl(var(--background))]/50 px-5 py-4" data-testid="before-after-strip">
             <div className="label-caps text-[hsl(var(--muted-foreground))] mb-2">
@@ -318,18 +318,39 @@ function BeforeAfterStrip({ attempt }) {
             <div className="font-mono text-xs leading-relaxed text-[hsl(var(--foreground))]">
                 {reasoning}
             </div>
-            {issues.length > 0 && (
-                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="border border-[hsl(var(--warning))]/40 rounded-sm p-3 bg-[hsl(var(--warning))]/5">
-                        <div className="label-caps text-[hsl(var(--warning))] mb-1">Claimed</div>
-                        <div className="font-mono text-xs text-white">{issues[0].problem || "—"}</div>
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="border border-[hsl(var(--warning))]/40 rounded-sm p-3 bg-[hsl(var(--warning))]/5">
+                    <div className="label-caps text-[hsl(var(--warning))] mb-1.5">
+                        Before · rejected claim
                     </div>
-                    <div className="border border-[hsl(var(--success))]/40 rounded-sm p-3 bg-[hsl(var(--success))]/5">
-                        <div className="label-caps text-[hsl(var(--success))] mb-1">Fix instruction to insight agent</div>
-                        <div className="font-mono text-xs text-white">{issues[0].suggestion || "—"}</div>
+                    <div className="text-sm text-white font-heading font-bold leading-snug">
+                        {rejected?.title || rejected?.claim || "—"}
                     </div>
+                    {rejected?.claim && rejected?.title && rejected.claim !== rejected.title && (
+                        <div className="text-xs text-[hsl(var(--muted-foreground))] mt-1.5">
+                            {rejected.claim}
+                        </div>
+                    )}
+                    {rejected?.evidence && (
+                        <div className="mt-2 font-mono text-[10px] text-[hsl(var(--warning))]">
+                            evidence cited: {JSON.stringify(rejected.evidence)}
+                        </div>
+                    )}
                 </div>
-            )}
+                <div className="border border-[hsl(var(--success))]/40 rounded-sm p-3 bg-[hsl(var(--success))]/5">
+                    <div className="label-caps text-[hsl(var(--success))] mb-1.5">
+                        After · corrected on next attempt
+                    </div>
+                    <div className="text-sm text-white font-heading font-bold leading-snug">
+                        {corrected?.title || corrected?.claim || "— (no successor attempt)"}
+                    </div>
+                    {corrected?.claim && corrected?.title && corrected.claim !== corrected.title && (
+                        <div className="text-xs text-[hsl(var(--muted-foreground))] mt-1.5">
+                            {corrected.claim}
+                        </div>
+                    )}
+                </div>
+            </div>
         </div>
     );
 }

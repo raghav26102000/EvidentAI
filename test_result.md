@@ -116,6 +116,9 @@ frontend:
         - working: true
           agent: "testing"
           comment: "Comprehensive verification completed. All major requirements PASSED: (A) Trail-summary panel contains Story sentence describing reject-and-retry flow. (B) TWO Attempt cards exist (attempt-1 and attempt-2). (C) Attempt-1 shows SUSPECT tag on finding #01, REJECTED badge with detailed reasoning citing specific numbers (r_xz_claimed=0.97 vs actual r_xz=-0.02513), 'Retry queued' text, feedback to insight_agent, and numeric contradiction strip. (D) Attempt-2 shows APPROVED badge, 'Outcome' text with total tokens, and no SUSPECT tags. Finding #01 changed from 'z is near-perfectly correlated with x' (attempt-1) to 'x and y move together almost perfectly' (attempt-2), demonstrating successful correction. Minor issue: before/after strip boxes show '—' instead of actual claimed/fix content, but this doesn't affect core functionality or legibility."
+        - working: true
+          agent: "testing"
+          comment: "RE-VERIFICATION COMPLETED: Before/after strip update VERIFIED SUCCESSFULLY. The strip now displays actual content instead of em-dashes. LEFT box shows: 'TESTING OVERSTATEMENT: z is near-perfectly correlated with x' with description and evidence (r_xz_claimed=0.97). RIGHT box shows: 'x and y move together almost perfectly' with correlation details (0.98867). The reject-and-retry story is now clearly legible in under 10 seconds. Both boxes contain real finding content from attempt 1 (rejected) and attempt 2 (corrected). The narrative is immediately clear: the overstatement about z/x correlation was rejected and corrected to show x/y relationship instead."
 
 metadata:
   created_by: "testing_agent"
@@ -132,3 +135,5 @@ test_plan:
 agent_communication:
     - agent: "testing"
       message: "Completed focused verification of Agent Trail view for reject-and-retry job. All critical requirements verified successfully. The reject/retry story is clearly legible to a stranger in under 10 seconds. Job with 5034 tokens (Run B / force-overstate) was correctly identified and tested. Screenshots captured showing: (1) trail view with Story sentence, (2) attempt-1 with SUSPECT/REJECTED/retry details, (3) attempt-2 with APPROVED outcome. One minor data issue noted: before/after strip boxes show empty content ('—') instead of specific claimed values and fix instructions, but this doesn't impact the overall clarity or functionality of the reject-retry narrative."
+    - agent: "testing"
+      message: "RE-VERIFICATION COMPLETE: The before/after strip update has been successfully verified. The previously reported minor issue (em-dashes instead of actual content) has been RESOLVED. Both boxes now display real finding content: LEFT box shows the rejected overstatement claim from attempt 1 ('TESTING OVERSTATEMENT: z is near-perfectly correlated with x' with evidence r_xz_claimed=0.97), and RIGHT box shows the corrected finding from attempt 2 ('x and y move together almost perfectly'). The reject-and-retry narrative is now fully functional and immediately clear to users. No further action needed on this feature."
