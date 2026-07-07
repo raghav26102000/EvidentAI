@@ -24,6 +24,16 @@ class Settings:
         self.clamd_socket: str = os.environ.get("CLAMD_SOCKET", "/var/run/clamav/clamd.ctl")
         self.clamav_scan_timeout: int = int(os.environ.get("CLAMAV_SCAN_TIMEOUT", "30"))
         self.emergent_llm_key: str = os.environ.get("EMERGENT_LLM_KEY", "")
+        # Phase 3: per-agent model selection. Format = "provider/model_name".
+        # Providers: openai | anthropic | gemini. Change either independently
+        # without touching code. If you swap the underlying LLM key later
+        # (e.g. Groq/DeepSeek via a different SDK), only this file changes.
+        self.insight_agent_model: str = os.environ.get(
+            "INSIGHT_AGENT_MODEL", "openai/gpt-5.4"
+        )
+        self.critic_agent_model: str = os.environ.get(
+            "CRITIC_AGENT_MODEL", "anthropic/claude-sonnet-4-6"
+        )
         self.app_name: str = os.environ.get("APP_NAME", "evidentai")
         self.cookie_secure: bool = os.environ.get("COOKIE_SECURE", "true").lower() == "true"
         self.cors_origins: list[str] = [

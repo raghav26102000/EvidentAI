@@ -31,6 +31,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..agents.statistical_agent import run_statistical_analysis
+from ..agents.insight_pipeline import run_insight_pipeline
 from ..db import app_session
 from ..deps import CurrentUser, get_current_user, tenant_session
 from ..kms import EncryptedBlob, decrypt_with_dek
@@ -125,6 +126,118 @@ async def analyze_dataset(
             job_id=job_id,
             tenant_id=current.tenant_id,
             dataset_id=dataset_id,
+        )
+    )
+
+    return JobCreatedOut(
+        id=job_id,
+        dataset_id=dataset_id,
+        agent_type=job.agent_type,
+        status=job.status,
+        created_at=job.created_at,
+    )
+
+
+# ---------------------------------------------------------------------------
+# POST /api/datasets/{dataset_id}/insights   (Phase 3)
+# ---------------------------------------------------------------------------
+class InsightsRequest(BaseModel):
+    stat_job_id: uuid.UUID | None = None    # if omitted, use most-recent succeeded stat job
+    # Testing hook: on the FIRST attempt only, inject a deliberately
+    # overstated finding so the critic MUST reject it. Used exclusively by
+    # /backend/tests/insight_proof.py to demonstrate the reject/retry trace.
+    test_force_overstate_first_attempt: bool = False
+
+
+@analyze_router.post(
+    "/{dataset_id}/insights",
+    response_model=JobCreatedOut,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def generate_insights_for_dataset(
+    dataset_id: uuid.UUID,
+    body: InsightsRequest | None = None,
+    session: AsyncSession = Depends(tenant_session),
+    current: CurrentUser = Depends(get_current_user),
+) -> JobCreatedOut:
+    body = body or InsightsRequest()
+
+    # Locate the source statistical job (or a specific one if given).
+    if body.stat_job_id is not None:
+        stat_job = (
+            await session.execute(
+                select(AgentJob).where(
+                    AgentJob.id == body.stat_job_id,
+                    AgentJob.dataset_id == dataset_id,
+                    AgentJob.agent_type == "statistical",
+                )
+            )
+        ).scalar_one_or_none()
+    else:
+        stat_job = (
+            await session.execute(
+                select(AgentJob).where(
+                    AgentJob.dataset_id == dataset_id,
+                    AgentJob.agent_type == "statistical",
+                    AgentJob.status == "succeeded",
+                ).order_by(AgentJob.created_at.desc()).limit(1)
+            )
+        ).scalar_one_or_none()
+
+    if stat_job is None:
+        raise HTTPException(
+            status_code=409,
+            detail="No completed statistical job for this dataset",
+        )
+    if stat_job.status != "succeeded":
+        raise HTTPException(
+            status_code=409,
+            detail=f"Statistical job not succeeded (status={stat_job.status})",
+        )
+    stat_result = (stat_job.payload or {}).get("result") or {}
+    stat_code = (stat_job.payload or {}).get("code") or ""
+
+    prof = (
+        await session.execute(
+            select(DatasetProfile).where(DatasetProfile.dataset_id == dataset_id)
+        )
+    ).scalar_one_or_none()
+    if prof is None:
+        raise HTTPException(status_code=409, detail="Dataset profile missing")
+
+    # Create the insight job row (tenant-scoped via RLS).
+    job = AgentJob(
+        tenant_id=current.tenant_id,
+        dataset_id=dataset_id,
+        agent_type="insight",
+        status="pending",
+        payload={"parent_stat_job_id": str(stat_job.id)},
+    )
+    session.add(job)
+    session.add(AuditEvent(
+        tenant_id=current.tenant_id,
+        actor_user_id=current.id,
+        event_type="agent_job.created",
+        resource_type="agent_job",
+        resource_id=str(job.id),
+        metadata_json={
+            "dataset_id": str(dataset_id),
+            "agent_type": "insight",
+            "parent_stat_job_id": str(stat_job.id),
+        },
+    ))
+    await session.flush()
+    job_id = job.id
+
+    asyncio.create_task(
+        run_insight_pipeline(
+            tenant_id=current.tenant_id,
+            insight_job_id=job_id,
+            parent_stat_job_id=stat_job.id,
+            profile_columns=prof.columns,
+            stat_code=stat_code,
+            stat_result=stat_result,
+            force_overstate_first_attempt=body.test_force_overstate_first_attempt,
         )
     )
 
